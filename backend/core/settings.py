@@ -2,10 +2,14 @@
 Django settings for iles_backend project.
 Optimized for Enterprise Production & Security.
 """
+import os
+import environ
 from datetime import timedelta
 from pathlib import Path
-import environ
-import os
+import dj_database_url
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ============================================================
 # ENVIRONMENT & PATH CONFIGURATION
@@ -49,6 +53,7 @@ INSTALLED_APPS = [
     
     # Third-party Apps
     "corsheaders",
+    "rest_framework.authtoken",
     "rest_framework",
     "rest_framework_simplejwt",
     "drf_spectacular",
@@ -60,11 +65,11 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     # WhiteNoise sits right behind SecurityMiddleware to serve static files instantly
     "whitenoise.middleware.WhiteNoiseMiddleware",
     # CORS must be placed BEFORE CommonMiddleware
-    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -98,9 +103,11 @@ WSGI_APPLICATION = "core.wsgi.application"
 # ============================================================
 # Reads from DATABASE_URL in your .env file, falls back to default if missing
 DATABASES = {
-    "default": env.db(
-        "DATABASE_URL",
-        default="postgres://ilesuser:2026@iles@localhost:5432/iles2026"
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        conn_health_checks=True,
+        ssl_require=True,
     )
 }
 
@@ -191,3 +198,12 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 # Optional: The name that shows up as the sender
 DEFAULT_FROM_EMAIL = f"I.L.E.S. Portal <{EMAIL_HOST_USER}>"
+
+# CORS Configuration
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000", # Allows your local Next.js dev server
+    # "https://your-future-domain.vercel.app", # We will uncomment and update this during deployment!
+]
+
+# Allow credentials (cookies, authorization headers)
+CORS_ALLOW_CREDENTIALS = True

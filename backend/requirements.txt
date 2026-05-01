@@ -1,44 +1,51 @@
-# ============================================================
-# CORE DJANGO & REST FRAMEWORK
-# ============================================================
-Django>=5.0,<6.1
-djangorestframework>=3.15.0,<4.0
-asgiref>=3.8.0
-tzdata>=2024.1
-
-# ============================================================
-# DATABASE
-# ============================================================
-# The modern PostgreSQL driver for Django
-psycopg[binary]>=3.1.18
-
-# ============================================================
-# AUTHENTICATION & SECURITY
-# ============================================================
-# Powers the JWT /login/ and /refresh/ endpoints we built
-djangorestframework-simplejwt>=5.3.1
-
-# Critical for allowing your Next.js/React frontend to talk to this API
-django-cors-headers>=4.3.1
-
-# ============================================================
-# ENVIRONMENT & SECRETS
-# ============================================================
-# Powers the manage.py environment loading we set up
-python-dotenv>=1.0.1
-# Enterprise standard for reading .env into settings.py
-django-environ>=0.11.2
-
-# ============================================================
-# API DOCUMENTATION
-# ============================================================
-# Auto-generates the Swagger/ReDoc pages we added to urls.py
-drf-spectacular>=0.27.2
-
-# ============================================================
-# PRODUCTION SERVER & STATIC FILES
-# ============================================================
-# The actual web server that will run Django in production (Render, AWS, etc.)
-gunicorn>=21.2.0
-# Serves static files (like the Admin portal CSS) efficiently without Nginx
-whitenoise>=6.6.0
+asgiref==3.11.1
+attrs==26.1.0
+black==26.3.1
+cfgv==3.5.0
+click==8.3.3
+coverage==7.13.5
+distlib==0.4.0
+dj-database-url==3.1.2
+Django==6.0.4
+django-cors-headers==4.9.0
+django-environ==0.13.0
+django-simple-history==3.11.0
+djangorestframework==3.17.1
+djangorestframework_simplejwt==5.5.1
+drf-spectacular==0.29.0
+filelock==3.29.0
+flake8==7.3.0
+gunicorn==25.3.0
+identify==2.6.19
+inflection==0.5.1
+iniconfig==2.3.0
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+mccabe==0.7.0
+mypy_extensions==1.1.0
+nodeenv==1.10.0
+packaging==26.2
+pathspec==1.1.1
+platformdirs==4.9.6
+pluggy==1.6.0
+pre_commit==4.6.0
+psycopg==3.3.3
+psycopg-binary==3.3.3
+pycodestyle==2.14.0
+pyflakes==3.4.0
+Pygments==2.20.0
+PyJWT==2.12.1
+pytest==9.0.3
+pytest-django==4.12.0
+python-discovery==1.2.2
+python-dotenv==1.2.2
+pytokens==0.4.1
+PyYAML==6.0.3
+referencing==0.37.0
+rpds-py==0.30.0
+sqlparse==0.5.5
+typing_extensions==4.15.0
+tzdata==2026.2
+uritemplate==4.2.0
+virtualenv==21.3.0
+whitenoise==6.12.0

@@ -9,58 +9,80 @@ import {
   FileJson 
 } from "lucide-react";
 
-interface ApiListPageProps {
+// 1. We make the props accept a Generic Type <T>
+interface ApiListPageProps<T> {
   title: string;
   description?: string;
-  fetchData: () => Promise<any>;
-  renderItem?: (item: any) => React.ReactNode;
+  fetchData: () => Promise<unknown>; // Use unknown instead of any
+  renderItem?: (item: T) => React.ReactNode;
   emptyMessage?: string;
 }
 
-// Handles various Django REST Framework response shapes (e.g. paginated vs raw array)
-function normalizeData(data: any): any[] {
-  if (Array.isArray(data)) return data;
-  if (data && Array.isArray(data.results)) return data.results;
-  if (data && typeof data === "object") return [data];
+// 2. We use Generics and Record<string, unknown> to avoid 'any'
+function normalizeData<T>(data: unknown): T[] {
+  if (Array.isArray(data)) return data as T[];
+  
+  if (data !== null && typeof data === "object") {
+    const obj = data as Record<string, unknown>;
+    // Check if it's a paginated Django response
+    if (Array.isArray(obj.results)) {
+      return obj.results as T[];
+    }
+    // Otherwise, wrap the single object in an array
+    return [data] as T[];
+  }
+  
   return [];
 }
 
-export default function ApiListPage({
+// 3. Define the component as a Generic (T extends an object that might have an id)
+export default function ApiListPage<T extends { id?: string | number }>({
   title,
   description,
   fetchData,
   renderItem,
   emptyMessage = "No records found yet.",
-}: ApiListPageProps) {
+}: ApiListPageProps<T>) {
   
-  const [items, setItems] = useState<any[]>([]);
-  const [rawData, setRawData] = useState<any>(null);
+  // Update state to use the Generic type T and 'unknown'
+  const [items, setItems] = useState<T[]>([]);
+  const [rawData, setRawData] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showDebug, setShowDebug] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
-    setLoading(true);
-    setError("");
+    
+    // 4. Renamed to loadData so it doesn't overwrite the fetchData prop!
+    const loadData = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        // Actually call the API prop passed into the component
+        const response = await fetchData();
+        
+        // Only update state if the component is still on the screen
+        if (isMounted) {
+          setRawData(response);
+          setItems(normalizeData<T>(response));
+        }
+      } catch (err: unknown) {
+        if (isMounted) {
+          setError("Failed to fetch data.");
+          console.error("API Error:", err);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
 
-    fetchData()
-      .then((data) => {
-        if (isMounted) {
-          setRawData(data);
-          setItems(normalizeData(data));
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (isMounted) {
-          setError(err.message || "An error occurred while fetching data.");
-          setLoading(false);
-        }
-      });
+    loadData();
 
     return () => {
-      isMounted = false;
+      isMounted = false; // Cleanup to prevent memory leaks
     };
   }, [fetchData]);
 

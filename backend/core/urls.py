@@ -3,6 +3,7 @@ Enterprise Master URL Configuration for iles_backend.
 Delegates traffic to application-specific routing files.
 """
 from django.conf import settings
+from rest_framework.authtoken.views import obtain_auth_token
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
@@ -23,17 +24,18 @@ urlpatterns = [
     # --------------------------------------------------------
     # SYSTEM APIS (Delegated to App URL Confs)
     # --------------------------------------------------------
-    # Resolves to: /api/users/v1/...
     path("api/users/", include("users.urls")),
-    
-    # Resolves to: /api/issues/v1/...
     path("api/issues/", include("issues.urls")),
+
+    # --------------------------------------------------------
+    # AUTHENTICATION ENDPOINT
+    # --------------------------------------------------------
+    # This matches the http://localhost:8000/api/auth/login/ call from Next.js
+    path("api/auth/login/", obtain_auth_token, name="api_token_auth"), # <--- ADD THIS LINE
 
     # --------------------------------------------------------
     # UNIFIED API DOCUMENTATION
     # --------------------------------------------------------
-    # Placed at the root so it generates a single cohesive 
-    # document containing both Identity and Issue endpoints.
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
         "api/docs/swagger/",
@@ -47,7 +49,5 @@ urlpatterns = [
     ),
 ]
 
-# Serve static files locally during development.
-# In production (DEBUG=False), WhiteNoise handles this automatically.
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

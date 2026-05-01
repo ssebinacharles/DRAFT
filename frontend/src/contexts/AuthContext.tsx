@@ -10,8 +10,6 @@ interface User {
   role: string;
 }
 
-// 1. THIS is what TypeScript was complaining about! 
-// We are explicitly telling it that login takes two strings and is async (Promise)
 interface AuthContextType {
   user: User | null;
   login: (username: string, password: string) => Promise<void>;
@@ -50,7 +48,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // 2. The real Django API login function
   const login = async (username: string, password: string) => {
     try {
       const response = await fetch("http://localhost:8000/api/auth/login/", {
@@ -68,7 +65,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const data = await response.json();
       const token = data.token;
 
-      // Temporarily construct a user object
+      // Temporarily construct a user object since Django only sent the token
       const userData: User = {
         id: 1, 
         username: username,

@@ -1,29 +1,31 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google"; // Using Inter for a more professional university feel
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-// We use Inter as the primary font for high-end enterprise apps
+// 1. IMPORT YOUR AUTH PROVIDER HERE:
+import { AuthProvider } from "@/context/AuthContext"; 
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ILES1 | Internship Management Portal",
-  description: "Internship Learning Evaluation System for professional student monitoring.",
+  title: "ILES Dashboard",
+  description: "Internship Learning Evaluation System",
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
-    <html lang="en" className="h-full">
-      <body 
-        className={`${inter.className} h-full bg-[#0a0f1d] antialiased selection:bg-indigo-500/30`}
-      >
-        {/* The bg-[#0a0f1d] here ensures that your 
-            glassy layers always have a dark background to 'frost' over.
-        */}
-        {children}
+    <html lang="en">
+      <body className={inter.className}>
+        
+        {/* 2. WRAP YOUR CHILDREN IN THE AUTH PROVIDER */}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+        
       </body>
     </html>
   );
