@@ -5,6 +5,7 @@ Optimized for Enterprise Production & Security.
 from datetime import timedelta
 from pathlib import Path
 import environ
+import os
 
 # ============================================================
 # ENVIRONMENT & PATH CONFIGURATION
@@ -178,3 +179,15 @@ STORAGES = {
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# ============================================================
+# EMAIL SETTINGS
+# ============================================================
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+# Optional: The name that shows up as the sender
+DEFAULT_FROM_EMAIL = f"I.L.E.S. Portal <{EMAIL_HOST_USER}>"

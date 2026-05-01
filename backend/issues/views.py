@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from django.conf import settings # <-- ADD THIS HERE
+from django.core.mail import send_mail
 from django.utils import timezone
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
@@ -299,14 +301,66 @@ class FinalResultViewSet(ILESBaseViewSet):
     student_lookup = "placement__student"
     supervisor_lookup = "placement__supervisor_assignments__supervisor"
 
+    # Notice we keep the security permission here!
     @action(detail=True, methods=["post"], permission_classes=[IsAdminOnlyPermission])
     def publish(self, request, pk=None):
+        # 1. Get the final result record
         final_result = self.get_object()
+        
+        # 2. Update the record to show who published it and when
         final_result.published_by = get_admin_profile(request.user)
         final_result.published_at = timezone.now()
         final_result.save()
-        return Response(self.get_serializer(final_result).data)
 
+        # 3. Gather student info for the email
+        student_user = final_result.placement.student.user
+        student_email = student_user.email
+        student_name = student_user.first_name or student_user.username
+
+        # 4. Craft the Email
+        subject = "🎓 Your Internship Results are Ready!"
+        
+        # Plain text version (fallback)
+        text_message = (
+            f"Hello {student_name},\n\n"
+            f"Your Final Internship Result has been officially published by the administration.\n"
+            f"Your Final Mark is: {final_result.final_mark}%\n\n"
+            f"Log in to the I.L.E.S. portal to view your full evaluation breakdown."
+        )
+
+        # HTML version (looks much better in Gmail)
+        html_message = f"""
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #6366f1;">Internship Results Published</h2>
+            <p>Hello <strong>{student_name}</strong>,</p>
+            <p>Your Final Internship Result has been officially published by the administration.</p>
+            <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                <p style="margin: 0; font-size: 14px; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">Final Mark</p>
+                <h1 style="margin: 5px 0 0 0; color: #0f172a; font-size: 36px;">{final_result.final_mark}%</h1>
+            </div>
+            <p>Please log in to your dashboard to view your complete evaluation breakdown, including academic and workplace assessments.</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+            <p style="font-size: 12px; color: #94a3b8; text-align: center;">
+                Internship Learning Evaluation System (I.L.E.S.)
+            </p>
+        </div>
+        """
+
+        # 5. Send the Email
+        try:
+            send_mail(
+                subject=subject,
+                message=text_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[student_email],
+                html_message=html_message,
+                fail_silently=False, 
+            )
+        except Exception as e:
+            print(f"Email failed to send: {e}")
+            
+        # Return the updated final result back to the frontend
+        return Response(self.get_serializer(final_result).data, status=status.HTTP_200_OK)
 
 # ============================================================
 # AUDIT & REPORTING VIEWSETS

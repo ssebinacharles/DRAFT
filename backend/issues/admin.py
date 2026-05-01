@@ -1,23 +1,21 @@
 from __future__ import annotations
+
 from typing import Any
 from django.contrib import admin, messages
 from django.db.models import QuerySet
-from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_lazy as _, ngettext
 
 from .models import (
+    AuditLog,
     Company,
+    Evaluation,
+    EvaluationCriterion,
+    EvaluationScore,
+    Feedback,
+    FinalResult,
     InternshipPlacement,
     SupervisorAssignment,
     WeeklyLog,
-    Feedback,
-    EvaluationCriterion,
-    Evaluation,
-    EvaluationScore,
-    FinalResult,
-    AuditLog,
-    ReportDefinition,
-    GeneratedReport,
 )
 
 # ============================================================
@@ -58,8 +56,7 @@ class SupervisorAssignmentInline(admin.TabularInline):
 class WeeklyLogInline(admin.TabularInline):
     model = WeeklyLog
     extra = 0
-    fields = ("week_number", "title", "status", "submitted_at")
-    readonly_fields = ("submitted_at",)
+    fields = ("week_number", "title", "status")
     show_change_link = True
 
 class EvaluationScoreInline(admin.TabularInline):
@@ -83,7 +80,7 @@ class InternshipPlacementAdmin(admin.ModelAdmin):
     list_display = ("student", "company", "start_date", "end_date", "status", "approved_by")
     list_filter = ("status", "start_date", "company")
     search_fields = ("student__user__username", "student__registration_number", "company__company_name")
-    readonly_fields = ("created_at", "updated_at", "requested_at", "approved_at")
+    readonly_fields = ("created_at", "updated_at")
     date_hierarchy = "start_date"
     autocomplete_fields = ("student", "company", "approved_by")
     inlines = [SupervisorAssignmentInline, WeeklyLogInline]
@@ -97,14 +94,14 @@ class InternshipPlacementAdmin(admin.ModelAdmin):
             "fields": ("start_date", "end_date", "status", "rejection_reason")
         }),
         (_("Approval Data"), {
-            "fields": ("approved_by", "requested_at", "approved_at"),
+            "fields": ("approved_by",),
             "classes": ("collapse",)
         }),
     )
 
     @admin.action(description=_("Approve selected placements"))
     def approve_placements(self, request, queryset):
-        updated = queryset.update(status="APPROVED", approved_at=timezone.now())
+        updated = queryset.update(status="APPROVED")
         self.message_user(request, ngettext(
             "%d placement was successfully approved.",
             "%d placements were successfully approved.",
@@ -136,12 +133,12 @@ class SupervisorAssignmentAdmin(admin.ModelAdmin):
 class FeedbackInline(admin.TabularInline):
     model = Feedback
     extra = 0
-    fields = ("supervisor", "decision", "comment", "is_latest")
+    fields = ("author", "decision", "comment")
     show_change_link = True
 
 @admin.register(WeeklyLog)
 class WeeklyLogAdmin(admin.ModelAdmin):
-    list_display = ("placement", "week_number", "status", "submitted_at")
+    list_display = ("placement", "week_number", "status")
     list_filter = ("status", "week_number")
     search_fields = ("placement__student__user__username", "title")
     autocomplete_fields = ("placement",)
@@ -149,9 +146,9 @@ class WeeklyLogAdmin(admin.ModelAdmin):
 
 @admin.register(Feedback)
 class FeedbackAdmin(admin.ModelAdmin):
-    list_display = ("weekly_log", "supervisor", "decision", "is_latest")
-    list_filter = ("decision", "is_latest")
-    autocomplete_fields = ("weekly_log", "supervisor")
+    list_display = ("weekly_log", "author", "decision")
+    list_filter = ("decision",)
+    autocomplete_fields = ("weekly_log", "author")
 
 # ============================================================
 # EVALUATIONS & RESULTS
@@ -167,7 +164,7 @@ class EvaluationCriterionAdmin(admin.ModelAdmin):
 class EvaluationAdmin(admin.ModelAdmin):
     list_display = ("placement", "evaluator", "evaluation_type", "total_score", "status")
     list_filter = ("evaluation_type", "status")
-    readonly_fields = ("total_score", "weighted_score", "created_at")
+    readonly_fields = ("total_score", "weighted_score", "created_at", "updated_at")
     autocomplete_fields = ("placement", "evaluator")
     inlines = [EvaluationScoreInline]
     actions = ["recalculate_selected_evaluations"]
@@ -185,8 +182,8 @@ class EvaluationAdmin(admin.ModelAdmin):
 
 @admin.register(FinalResult)
 class FinalResultAdmin(admin.ModelAdmin):
-    list_display = ("placement", "final_mark", "published_by")
-    readonly_fields = ("final_mark", "created_at")
+    list_display = ("placement", "final_mark", "created_at")
+    readonly_fields = ("final_mark", "created_at", "updated_at")
     autocomplete_fields = ("placement",)
     
     fieldsets = (
@@ -197,7 +194,7 @@ class FinalResultAdmin(admin.ModelAdmin):
             "fields": ("weekly_logs_score", "supervisor_evaluation_score", "final_report_score", "workplace_assessment_score")
         }),
         (_("Final Output"), {
-            "fields": ("final_mark", "published_by")
+            "fields": ("final_mark",)
         }),
     )
 
@@ -210,7 +207,7 @@ class AuditLogAdmin(admin.ModelAdmin):
     list_display = ("actor", "action", "model_label", "created_at")
     list_filter = ("action", "model_label")
     search_fields = ("actor__username", "model_label")
-    readonly_fields = [f.name for f in AuditLog._meta.fields] # Make ALL fields read-only
+    readonly_fields = [f.name for f in AuditLog._meta.fields]
     
     def has_add_permission(self, request):
         return False
@@ -221,25 +218,7 @@ class AuditLogAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
-@admin.register(ReportDefinition)
-class ReportDefinitionAdmin(admin.ModelAdmin):
-    list_display = ("name", "report_type", "frequency", "is_active")
-    list_filter = ("report_type", "frequency", "is_active")
-    search_fields = ("name",)
-
-@admin.register(GeneratedReport)
-class GeneratedReportAdmin(admin.ModelAdmin):
-    list_display = ("report_definition", "generated_by", "status", "created_at")
-    list_filter = ("status",)
-    readonly_fields = [f.name for f in GeneratedReport._meta.fields]
-
-    def has_add_permission(self, request):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
-
 # Global admin configurations
-admin.site.site_header = _("ILES1 Administration")
-admin.site.site_title = _("ILES1 Admin Portal")
+admin.site.site_header = _("ILES Administration")
+admin.site.site_title = _("ILES Admin Portal")
 admin.site.index_title = _("System Management")

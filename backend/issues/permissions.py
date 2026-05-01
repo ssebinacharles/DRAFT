@@ -1,9 +1,9 @@
 from typing import Any
 from django.db.models import Model
-from rest_framework.permissions import BasePermission, SAFE_METHODS
+from rest_framework.permissions import BasePermission, SAFE_METHODS, IsAdminUser
 
 from users.models import UserRole
-from .models import SupervisorAssignment
+from issues.models import SupervisorAssignment
 
 # ============================================================
 # OPTIMIZED ROLE & PROFILE HELPERS
@@ -32,6 +32,15 @@ def get_profile(user: Any, profile_attr: str) -> Model | None:
     # Uses Django's related object cache (e.g., user.studentprofile)
     return getattr(user, profile_attr, None)
 
+def get_student_profile(user: Any) -> Model | None:
+    return get_profile(user, 'studentprofile')
+
+def get_supervisor_profile(user: Any) -> Model | None:
+    return get_profile(user, 'supervisorprofile')
+
+def get_admin_profile(user: Any) -> Model | None:
+    return get_profile(user, 'administratorprofile')
+
 # ============================================================
 # CORE ACCESS LOGIC
 # ============================================================
@@ -47,11 +56,11 @@ def can_access_placement(user: Any, placement: Model, read_only: bool = False) -
         return True
 
     if is_student(user):
-        profile = get_profile(user, 'studentprofile')
+        profile = get_student_profile(user)
         return bool(profile and placement.student_id == profile.id)
 
     if is_supervisor(user):
-        profile = get_profile(user, 'supervisorprofile')
+        profile = get_supervisor_profile(user)
         if not profile:
             return False
             
@@ -146,11 +155,11 @@ class SupervisorAssignmentPermission(BasePermission):
             return False
 
         if is_student(request.user):
-            profile = get_profile(request.user, 'studentprofile')
+            profile = get_student_profile(request.user)
             return bool(profile and obj.placement.student_id == profile.id)
 
         if is_supervisor(request.user):
-            profile = get_profile(request.user, 'supervisorprofile')
+            profile = get_supervisor_profile(request.user)
             return bool(profile and obj.supervisor_id == profile.id)
 
         return False
@@ -164,9 +173,17 @@ class EvaluationCriterionPermission(BasePermission):
         return is_administrator(request.user)
 
 class IsAdminOnlyPermission(BasePermission):
-    """Reusable permission for AuditLogs and Reports."""
+    """Reusable permission for any action that strictly requires Admin access."""
     def has_permission(self, request: Any, view: Any) -> bool:
         return is_administrator(request.user)
 
     def has_object_permission(self, request: Any, view: Any, obj: Any) -> bool:
         return is_administrator(request.user)
+
+class AuditLogPermission(IsAdminUser):
+    """Only administrators can access audit log endpoints."""
+    pass
+
+class ReportPermission(IsAdminOnlyPermission):
+    """Only administrators can run or view reports."""
+    pass
